@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0d12" />
+    <link rel="manifest" href="./app.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <title>Metronome</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --card: rgba(255, 255, 255, 0.06);
+        --card2: rgba(255, 255, 255, 0.09);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.62);
+        --line: rgba(255, 255, 255, 0.12);
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+        --radius: 18px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(1200px 800px at 50% -10%, rgba(112, 158, 255, 0.16), transparent 60%),
+          radial-gradient(900px 700px at 10% 30%, rgba(255, 160, 122, 0.10), transparent 55%),
+          radial-gradient(900px 700px at 90% 60%, rgba(140, 255, 214, 0.08), transparent 55%),
+          var(--bg);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .wrap {
+        width: min(520px, 100%);
+        display: grid;
+        gap: 14px;
+      }
+
+      .card {
+        background: linear-gradient(180deg, var(--card), rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px 18px 16px;
+        backdrop-filter: blur(10px);
+      }
+
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .title {
+        display: grid;
+        gap: 2px;
+      }
+
+      .title h1 {
+        font-size: 16px;
+        margin: 0;
+        letter-spacing: 0.2px;
+        font-weight: 650;
+      }
+
+      .title .sub {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .pill {
+        font-size: 12px;
+        color: var(--muted);
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .bpmRow {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 12px;
+      }
+
+      .bpm {
+        font-size: 48px;
+        line-height: 1;
+        letter-spacing: -1px;
+        font-weight: 720;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bpmLabel {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      .btnRow {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+      }
+
+      button:active { transform: translateY(1px); }
+      button:hover { background: rgba(255, 255, 255, 0.09); }
+
+      .primary {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .primary.running {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.24);
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .row label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: rgba(255, 255, 255, 0.85);
+      }
+
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .divider {
+        height: 1px;
+        background: var(--line);
+        margin: 10px 0;
+      }
+
+      .visual {
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+      }
+
+      .pulse {
+        height: 100%;
+        width: 0%;
+        background: rgba(255, 255, 255, 0.65);
+        transition: width 0.05s linear;
+      }
+
+      .tap {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .note {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="top">
+          <div class="title">
+            <h1>Metronome</h1>
+            <div class="sub">Minimal. Stable. Offline.</div>
+          </div>
+          <div class="pill" id="statusPill">Stopped</div>
+        </div>
+
+        <div class="bpmRow">
+          <div>
+            <div class="bpm"><span id="bpmOut">80</span></div>
+            <div class="bpmLabel">BPM</div>
+          </div>
+          <div class="btnRow">
+            <button id="tapBtn" class="tap" title="Tap tempo">Tap</button>
+            <button id="toggleBtn" class="primary">Start</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="grid">
+          <div>
+            <input id="bpm" type="range" min="30" max="240" step="1" value="80" />
+            <div class="row" style="margin-top: 8px;">
+              <label for="bpm">Tempo</label>
+              <div class="small"><span id="bpmSmall">80</span> BPM</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label for="beats">Beats / bar</label>
+            <select id="beats" style="padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,0.06);color:var(--text);">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label for="accent">Accent downbeat</label>
+            <input id="accent" type="checkbox" checked style="width:18px;height:18px;" />
+          </div>
+
+          <div class="row">
+            <label for="vol">Volume</label>
+            <input id="vol" type="range" min="0" max="1" step="0.01" value="0.35" />
+          </div>
+
+          <div class="visual" aria-hidden="true">
+            <div id="pulse" class="pulse"></div>
+          </div>
+
+          <div class="note" id="note">
+            Tip: On iOS, audio starts only after a user gesture. If it’s silent, hit Start again.
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Install: browser menu → “Add to Home Screen”</div>
+    </div>
+
+    <script>
+      // PWA: register service worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        });
+      }
+
+      const els = {
+        bpm: document.getElementById("bpm"),
+        bpmOut: document.getElementById("bpmOut"),
+        bpmSmall: document.getElementById("bpmSmall"),
+        beats: document.getElementById("beats"),
+        accent: document.getElementById("accent"),
+        vol: document.getElementById("vol"),
+        tapBtn: document.getElementById("tapBtn"),
+        toggleBtn: document.getElementById("toggleBtn"),
+        statusPill: document.getElementById("statusPill"),
+        pulse: document.getElementById("pulse"),
+      };
+
+      // --- Audio scheduler (stable timing) ---
+      let audioCtx = null;
+      let master = null;
+
+      let isRunning = false;
+      let currentBeat = 0;
+      let nextNoteTime = 0;
+
+      const scheduleAheadTime = 0.12;
+      const lookaheadMs = 25;
+      let timerId = null;
+
+      function ensureAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        master = audioCtx.createGain();
+        master.gain.value = Number(els.vol.value);
+        master.connect(audioCtx.destination);
+      }
+
+      function setVolume(v) {
+        if (!master) return;
+        master.gain.setTargetAtTime(v, audioCtx.currentTime, 0.01);
+      }
+
+      function bpmValue() {
+        return Number(els.bpm.value);
+      }
+
+      function secondsPerBeat() {
+        return 60 / bpmValue();
+      }
+
+      function tickSound(time, isAccent) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.value = isAccent ? 1200 : 880;
+
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.exponentialRampToValueAtTime(isAccent ? 0.9 : 0.65, time + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.055);
+
+        osc.connect(gain);
+        gain.connect(master);
+
+        osc.start(time);
+        osc.stop(time + 0.07);
+      }
+
+      function scheduleNote(beatIndex, time) {
+        const beatsPerBar = Number(els.beats.value);
+        const isDownbeat = beatIndex % beatsPerBar === 0;
+        const doAccent = els.accent.checked && isDownbeat;
+
+        tickSound(time, doAccent);
+
+        // UI pulse near the scheduled audio time
+        const now = audioCtx.currentTime;
+        const delayMs = Math.max(0, (time - now) * 1000);
+        window.setTimeout(() => {
+          els.pulse.style.width = "100%";
+          requestAnimationFrame(() => (els.pulse.style.width = "0%"));
+        }, delayMs);
+      }
+
+      function scheduler() {
+        while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+          scheduleNote(currentBeat, nextNoteTime);
+          nextNoteTime += secondsPerBeat();
+          currentBeat += 1;
+        }
+      }
+
+      async function start() {
+        ensureAudio();
+
+        if (audioCtx.state === "suspended") {
+          try { await audioCtx.resume(); } catch (_) {}
+        }
+
+        isRunning = true;
+        currentBeat = 0;
+        nextNoteTime = audioCtx.currentTime + 0.06;
+
+        timerId = window.setInterval(scheduler, lookaheadMs);
+
+        els.statusPill.textContent = "Running";
+        els.toggleBtn.textContent = "Stop";
+        els.toggleBtn.classList.add("running");
+      }
+
+      function stop() {
+        isRunning = false;
+        if (timerId) {
+          window.clearInterval(timerId);
+          timerId = null;
+        }
+        els.statusPill.textContent = "Stopped";
+        els.toggleBtn.textContent = "Start";
+        els.toggleBtn.classList.remove("running");
+      }
+
+      // --- Tap tempo ---
+      const tapTimes = [];
+      function tapTempo() {
+        const t = performance.now();
+        tapTimes.push(t);
+        while (tapTimes.length > 8) tapTimes.shift();
+
+        if (tapTimes.length < 2) return;
+
+        const deltas = [];
+        for (let i = 1; i < tapTimes.length; i++) deltas.push(tapTimes[i] - tapTimes[i - 1]);
+
+        const median = deltas.slice().sort((a, b) => a - b)[Math.floor(deltas.length / 2)];
+        if (!median || median <= 0) return;
+
+        const bpm = Math.round(60000 / median);
+        const clamped = Math.min(240, Math.max(30, bpm));
+        els.bpm.value = String(clamped);
+        renderBpm();
+      }
+
+      // --- UI wiring ---
+      function renderBpm() {
+        const v = bpmValue();
+        els.bpmOut.textContent = String(v);
+        els.bpmSmall.textContent = String(v);
+      }
+
+      els.bpm.addEventListener("input", renderBpm);
+      els.vol.addEventListener("input", () => setVolume(Number(els.vol.value)));
+
+      els.toggleBtn.addEventListener("click", async () => {
+        if (!isRunning) await start();
+        else stop();
+      });
+
+      els.tapBtn.addEventListener("click", tapTempo);
+
+      // Keep UI in sync on load
+      renderBpm();
+    </script>
+  </body>
+</html>
