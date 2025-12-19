@@ -479,7 +479,7 @@
 
         isRunning = true;
         currentBeat = 0;
-        nextNoteTime = audioCtx.currentTime + 0.1; // Add a tiny bit more padding for PWA hardware
+        nextNoteTime = audioCtx.currentTime + 0.1;
 
         timerId = window.setInterval(scheduler, lookaheadMs);
 
@@ -541,13 +541,16 @@
           audioCtx.resume();
         }
         
-        // Create and play a literal buffer of silence
-        // This is often more effective than an oscillator for waking up WebKit
-        const buffer = audioCtx.createBuffer(1, 1, 22050);
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioCtx.destination);
-        source.start(0);
+        // Use an actual audible beep for the handshake if silence isn't working
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.001, audioCtx.currentTime); 
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(0);
+        osc.stop(audioCtx.currentTime + 0.01);
         
         if (!isRunning) await start();
         else stop();
