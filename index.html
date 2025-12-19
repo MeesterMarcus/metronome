@@ -535,6 +535,11 @@
       els.vol.addEventListener("input", () => setVolume(Number(els.vol.value)));
 
       els.toggleBtn.addEventListener("click", async () => {
+        // iOS Safari: Always try to resume on every single click gesture
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        
         if (!isRunning) await start();
         else stop();
       });
