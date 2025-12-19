@@ -477,18 +477,9 @@
           try { await audioCtx.resume(); } catch (_) {}
         }
 
-        // WebKit/Safari PWA fix: Force a dummy sound immediately
-        const dummyOsc = audioCtx.createOscillator();
-        const dummyGain = audioCtx.createGain();
-        dummyGain.gain.setValueAtTime(0, audioCtx.currentTime);
-        dummyOsc.connect(dummyGain);
-        dummyGain.connect(audioCtx.destination);
-        dummyOsc.start();
-        dummyOsc.stop(audioCtx.currentTime + 0.001);
-
         isRunning = true;
         currentBeat = 0;
-        nextNoteTime = audioCtx.currentTime + 0.06;
+        nextNoteTime = audioCtx.currentTime + 0.1; // Add a tiny bit more padding for PWA hardware
 
         timerId = window.setInterval(scheduler, lookaheadMs);
 
@@ -545,10 +536,18 @@
           ensureAudio();
         }
         
-        // iOS Safari: Always try to resume on every single click gesture
-        if (audioCtx && audioCtx.state === "suspended") {
+        // iOS Safari Standalone: The MOST aggressive unlock possible
+        if (audioCtx.state === "suspended") {
           audioCtx.resume();
         }
+        
+        // Create and play a literal buffer of silence
+        // This is often more effective than an oscillator for waking up WebKit
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
         
         if (!isRunning) await start();
         else stop();
