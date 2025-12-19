@@ -1,4 +1,4 @@
-const CACHE_NAME = "minimal-metronome-v5";
+const CACHE_NAME = "minimal-metronome-v6";
 const ASSETS = ["./", "./index.html", "./app.webmanifest", "./sw.js", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

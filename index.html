@@ -477,10 +477,14 @@
           try { await audioCtx.resume(); } catch (_) {}
         }
 
-        // Double check state for iOS - sometimes it stays suspended if not called directly in click handler
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
-        }
+        // WebKit/Safari PWA fix: Force a dummy sound immediately
+        const dummyOsc = audioCtx.createOscillator();
+        const dummyGain = audioCtx.createGain();
+        dummyGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        dummyOsc.connect(dummyGain);
+        dummyGain.connect(audioCtx.destination);
+        dummyOsc.start();
+        dummyOsc.stop(audioCtx.currentTime + 0.001);
 
         isRunning = true;
         currentBeat = 0;
