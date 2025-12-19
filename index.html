@@ -406,8 +406,7 @@
 
       function ensureAudio() {
         if (audioCtx) return;
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContextClass();
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         master = audioCtx.createGain();
         master.gain.value = Number(els.vol.value);
         master.connect(audioCtx.destination);
@@ -469,9 +468,7 @@
       }
 
       async function start() {
-        if (!audioCtx) {
-          ensureAudio();
-        }
+        ensureAudio();
 
         if (audioCtx.state === "suspended") {
           try { await audioCtx.resume(); } catch (_) {}
@@ -479,7 +476,7 @@
 
         isRunning = true;
         currentBeat = 0;
-        nextNoteTime = audioCtx.currentTime + 0.1;
+        nextNoteTime = audioCtx.currentTime + 0.06;
 
         timerId = window.setInterval(scheduler, lookaheadMs);
 
@@ -531,32 +528,6 @@
       els.vol.addEventListener("input", () => setVolume(Number(els.vol.value)));
 
       els.toggleBtn.addEventListener("click", async () => {
-        // Create context on first click if it doesn't exist
-        if (!audioCtx) {
-          ensureAudio();
-        }
-        
-        // iOS Safari Standalone: The MOST aggressive unlock possible
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
-        }
-        
-        // Try to play a very short "real" sound file (base64 encoded 10ms click)
-        // Sometimes physical samples trigger the hardware better than oscillators
-        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==");
-        audio.play().catch(() => {});
-        
-        // Also do the oscillator as a fallback
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-        g.gain.setValueAtTime(0.001, audioCtx.currentTime); 
-        osc.connect(g);
-        g.connect(audioCtx.destination);
-        osc.start(0);
-        osc.stop(audioCtx.currentTime + 0.01);
-        
         if (!isRunning) await start();
         else stop();
       });
