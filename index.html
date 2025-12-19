@@ -85,30 +85,35 @@
       }
 
       .bpmRow {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: end;
-        gap: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 24px;
+        margin: 20px 0;
       }
 
       .bpm {
-        font-size: 48px;
+        font-size: 84px;
         line-height: 1;
-        letter-spacing: -1px;
-        font-weight: 720;
+        letter-spacing: -3px;
+        font-weight: 800;
         font-variant-numeric: tabular-nums;
       }
 
       .bpmLabel {
-        font-size: 12px;
+        font-size: 14px;
+        letter-spacing: 1px;
         color: var(--muted);
-        margin-top: 6px;
+        margin-top: 8px;
+        font-weight: 600;
       }
 
       .btnRow {
         display: flex;
-        gap: 10px;
-        justify-content: flex-end;
+        gap: 12px;
+        width: 100%;
+        justify-content: center;
         align-items: center;
       }
 
@@ -202,6 +207,86 @@
         color: var(--muted);
         margin-top: 2px;
       }
+
+      .bpm-clickable {
+        cursor: pointer;
+        transition: opacity 0.1s ease;
+        display: inline-block;
+        min-width: 100px;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .bpm-clickable:hover {
+        opacity: 0.8;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal {
+        background: #1a1d24;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 24px;
+        padding: 32px;
+        width: 280px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        transform: scale(0.9);
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-align: center;
+      }
+
+      .modal-overlay.open .modal {
+        transform: scale(1);
+      }
+
+      .modal h2 {
+        margin: 0 0 16px;
+        font-size: 18px;
+        font-weight: 650;
+      }
+
+      .modal input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--text);
+        padding: 12px;
+        font-size: 32px;
+        text-align: center;
+        margin-bottom: 24px;
+        font-family: inherit;
+        outline: none;
+      }
+
+      .modal input:focus {
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .modal-btns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
     </style>
   </head>
   <body>
@@ -217,7 +302,7 @@
 
         <div class="bpmRow">
           <div>
-            <div class="bpm"><span id="bpmOut">80</span></div>
+            <div class="bpm"><span id="bpmOut" class="bpm-clickable" title="Click to set tempo">120</span></div>
             <div class="bpmLabel">BPM</div>
           </div>
           <div class="btnRow">
@@ -230,10 +315,10 @@
 
         <div class="grid">
           <div>
-            <input id="bpm" type="range" min="30" max="240" step="1" value="80" />
+            <input id="bpm" type="range" min="30" max="240" step="1" value="120" />
             <div class="row" style="margin-top: 8px;">
               <label for="bpm">Tempo</label>
-              <div class="small"><span id="bpmSmall">80</span> BPM</div>
+              <div class="small"><span id="bpmSmall">120</span> BPM</div>
             </div>
           </div>
 
@@ -271,6 +356,17 @@
       <div class="footer">Install: browser menu → “Add to Home Screen”</div>
     </div>
 
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <h2>Set Tempo</h2>
+        <input type="number" id="modalBpmInput" min="30" max="240" step="1" />
+        <div class="modal-btns">
+          <button id="modalCancel">Cancel</button>
+          <button id="modalSet" class="primary">Set</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // PWA: register service worker
       if ("serviceWorker" in navigator) {
@@ -290,6 +386,10 @@
         toggleBtn: document.getElementById("toggleBtn"),
         statusPill: document.getElementById("statusPill"),
         pulse: document.getElementById("pulse"),
+        modalOverlay: document.getElementById("modalOverlay"),
+        modalBpmInput: document.getElementById("modalBpmInput"),
+        modalCancel: document.getElementById("modalCancel"),
+        modalSet: document.getElementById("modalSet"),
       };
 
       // --- Audio scheduler (stable timing) ---
@@ -433,6 +533,38 @@
       });
 
       els.tapBtn.addEventListener("click", tapTempo);
+
+      // --- Modal Logic ---
+      function openModal() {
+        els.modalBpmInput.value = els.bpm.value;
+        els.modalOverlay.classList.add("open");
+        setTimeout(() => els.modalBpmInput.focus(), 50);
+      }
+
+      function closeModal() {
+        els.modalOverlay.classList.remove("open");
+      }
+
+      function applyModalBpm() {
+        const val = parseInt(els.modalBpmInput.value, 10);
+        if (!isNaN(val)) {
+          const clamped = Math.min(240, Math.max(30, val));
+          els.bpm.value = String(clamped);
+          renderBpm();
+        }
+        closeModal();
+      }
+
+      els.bpmOut.addEventListener("click", openModal);
+      els.modalCancel.addEventListener("click", closeModal);
+      els.modalSet.addEventListener("click", applyModalBpm);
+      els.modalOverlay.addEventListener("click", (e) => {
+        if (e.target === els.modalOverlay) closeModal();
+      });
+      els.modalBpmInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyModalBpm();
+        if (e.key === "Escape") closeModal();
+      });
 
       // Keep UI in sync on load
       renderBpm();
