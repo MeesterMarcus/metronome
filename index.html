@@ -406,7 +406,8 @@
 
       function ensureAudio() {
         if (audioCtx) return;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
         master = audioCtx.createGain();
         master.gain.value = Number(els.vol.value);
         master.connect(audioCtx.destination);
@@ -535,6 +536,11 @@
       els.vol.addEventListener("input", () => setVolume(Number(els.vol.value)));
 
       els.toggleBtn.addEventListener("click", async () => {
+        // Create context on first click if it doesn't exist
+        if (!audioCtx) {
+          ensureAudio();
+        }
+        
         // iOS Safari: Always try to resume on every single click gesture
         if (audioCtx && audioCtx.state === "suspended") {
           audioCtx.resume();
