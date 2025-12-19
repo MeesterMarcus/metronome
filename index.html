@@ -541,7 +541,12 @@
           audioCtx.resume();
         }
         
-        // Use an actual audible beep for the handshake if silence isn't working
+        // Try to play a very short "real" sound file (base64 encoded 10ms click)
+        // Sometimes physical samples trigger the hardware better than oscillators
+        const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==");
+        audio.play().catch(() => {});
+        
+        // Also do the oscillator as a fallback
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
