@@ -468,10 +468,17 @@
       }
 
       async function start() {
-        ensureAudio();
+        if (!audioCtx) {
+          ensureAudio();
+        }
 
         if (audioCtx.state === "suspended") {
           try { await audioCtx.resume(); } catch (_) {}
+        }
+
+        // Double check state for iOS - sometimes it stays suspended if not called directly in click handler
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
         }
 
         isRunning = true;
